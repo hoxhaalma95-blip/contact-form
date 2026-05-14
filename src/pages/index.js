@@ -1,61 +1,127 @@
-import Link from "next/link";
+import { useState } from "react";
 
 export default function Home() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setStatus("");
+
+    try {
+      const res = await fetch("/api/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          message,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setStatus("✅ Message sent successfully!");
+        setName("");
+        setEmail("");
+        setMessage("");
+      } else {
+        setStatus("❌ Failed to send message");
+      }
+    } catch (error) {
+      setStatus("❌ Error sending message");
+    }
+
+    setLoading(false);
+  };
+
   return (
     <div
       style={{
         minHeight: "100vh",
         display: "flex",
-        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         background: "#f3f4f6",
         fontFamily: "Arial",
       }}
     >
-      {/* TITLE */}
-      <h1 style={{ fontSize: 40, marginBottom: 10 }}>
-        Contact Form 🚀
-      </h1>
+      <div
+        style={{
+          background: "white",
+          padding: 30,
+          borderRadius: 10,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          width: 350,
+        }}
+      >
+        <h1 style={{ marginBottom: 20 }}>Contact Form 📩</h1>
 
-      <p style={{ color: "gray", marginBottom: 30 }}>
-        Serverless + Supabase + Spam Detection
-      </p>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={inputStyle}
+            required
+          />
 
-      {/* BUTTONS */}
-      <div style={{ display: "flex", gap: 15 }}>
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={inputStyle}
+            required
+          />
 
-        <Link href="/login">
+          <textarea
+            placeholder="Message"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            style={{ ...inputStyle, height: 100 }}
+            required
+          />
+
           <button
-            style={{
-              padding: "10px 20px",
-              background: "#2563eb",
-              color: "white",
-              border: "none",
-              borderRadius: 8,
-              cursor: "pointer",
-            }}
+            type="submit"
+            disabled={loading}
+            style={buttonStyle}
           >
-            Login 🔐
+            {loading ? "Sending..." : "Send Message"}
           </button>
-        </Link>
+        </form>
 
-        <Link href="/admin">
-          <button
-            style={{
-              padding: "10px 20px",
-              background: "#111827",
-              color: "white",
-              border: "none",
-              borderRadius: 8,
-              cursor: "pointer",
-            }}
-          >
-            Admin 📊
-          </button>
-        </Link>
-
+        {status && (
+          <p style={{ marginTop: 15, color: "#333" }}>{status}</p>
+        )}
       </div>
     </div>
   );
 }
+
+const inputStyle = {
+  width: "100%",
+  padding: 10,
+  marginBottom: 10,
+  borderRadius: 6,
+  border: "1px solid #ccc",
+};
+
+const buttonStyle = {
+  width: "100%",
+  padding: 10,
+  background: "#2563eb",
+  color: "white",
+  border: "none",
+  borderRadius: 6,
+  cursor: "pointer",
+};
