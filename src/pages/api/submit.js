@@ -1,64 +1,59 @@
 import { spamScore } from "../../utils/spamScore";
 import { supabase } from "../../lib/supabase";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req, res) {
-  // ✔ vetëm POST lejohet
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method not allowed" });
   }
 
-  const { name, email, message } = req.body;
-
-  // ✔ spam check
-  const score = spamScore(message);
-
-  if (score > 5) {
-    return res.status(400).json({
-      success: false,
-      message: "Spam detected ❌"
-    });
-  }
-
   try {
-    // ✔ ruaj në database
-    await supabase.from("messages").insert([
-      {
-        name,
-        email,
-        message,
-        score
-      }
-    ]);
+    const { name, email, message } = req.body;
 
-    // ✔ dërgo email
-    await resend.emails.send({
-      from: "Contact Form <onboarding@resend.dev>",
-      to: "hoxhaalma95@gmail.com", // 
-      subject: "New Contact Form Message",
-      html: `
-        <h2>New Message</h2>
-        <p><b>Name:</b> ${name}</p>
-        <p><b>Email:</b> ${email}</p>
-        <p><b>Message:</b> ${message}</p>
-        <p><b>Spam Score:</b> ${score}</p>
-      `
-    });
+    console.log("📩 RECEIVED:", req.body);
 
-   
+    // 🔥 spam scoring
+    const score = spamScore(message);
+
+    console.log("🧠 SPAM SCORE:", score);
+
+    // 🗄️ insert në Supabase
+    const { data, error } = await supabase
+      .from("messages")
+      .insert([
+        {
+          name,
+          email,
+          message,
+          score
+        }
+      ])
+      .select();
+
+    // 🚨 log error nëse ka
+    if (error) {
+      console.log("❌ SUPABASE ERROR:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "DB insert failed",
+        error: error.message
+      });
+    }
+
+    console.log("✅ SUPABASE DATA:", data);
+
     return res.status(200).json({
       success: true,
-      message: "Message sent successfully ✅"
+      message: "Message saved successfully",
+      data
     });
 
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.log("💥 SERVER ERROR:", err);
 
     return res.status(500).json({
       success: false,
-      message: "Something went wrong ❌"
+      message: "Server error"
     });
   }
 }
