@@ -1,6 +1,5 @@
 export function spamScore(text = "") {
   let score = 0;
-
   const msg = text.toLowerCase();
 
   if (msg.includes("free")) score += 3;
